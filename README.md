@@ -45,7 +45,7 @@ Por exemplo, numa tabela `users`:
 
 | id | username | email |
 |----|----------|-------|
-| 1  | Makene   | makene@email.com |
+| 1  | Makene   | makenedev@gmail.com |
 | 2  | Ana      | ana@email.com |
 
 - `id`, `username` e `email` são **colunas**
@@ -120,7 +120,7 @@ Usado para **adicionar dados** a uma tabela.
 
 ```sql
 INSERT INTO users (username, email)
-VALUES ('Makene', 'makene@email.com');
+VALUES ('Makene', 'makenedev@gmail.com');
 ```
 
 Podes inserir vários registos de uma vez:
@@ -128,7 +128,7 @@ Podes inserir vários registos de uma vez:
 ```sql
 INSERT INTO users (username, email)
 VALUES 
-    ('Makene', 'makene@email.com'),
+    ('Makene', 'makenedev@gmail.com'),
     ('Ana', 'ana@email.com'),
     ('João', 'joao@email.com');
 ```
