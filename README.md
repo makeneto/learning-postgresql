@@ -761,7 +761,7 @@ A tabela principal é sempre aquela escrita depois do `FROM`.
 
 ---
 
-# Regra de ouro (JOINs)
+# * Regra de ouro (JOINs)
 
 Antes de escrever um `JOIN`, faça duas perguntas:
 
@@ -773,8 +773,6 @@ Se responder essas duas perguntas, ficará fácil escolher o `JOIN` correto.
 ---
 
 # Agregação e Agrupamento
-
-## O problema que isso resolve
 
 Até agora vimos como buscar e filtrar linhas individuais. Mas e quando queremos **resumir** dados — tipo "quantos posts cada usuário tem?" ou "qual a nota média das reviews?". Para isso existem as **funções de agregação** e o `GROUP BY`.
 
