@@ -750,7 +750,7 @@ A tabela principal é sempre aquela escrita depois do `FROM`.
 
 ---
 
-# Resumo
+# Resumo (JOINs)
 
 | JOIN | Retorna | Uso mais comum |
 |------|----------|----------------|
@@ -761,7 +761,7 @@ A tabela principal é sempre aquela escrita depois do `FROM`.
 
 ---
 
-# Regra de ouro
+# Regra de ouro (JOINs)
 
 Antes de escrever um `JOIN`, faça duas perguntas:
 
@@ -769,3 +769,122 @@ Antes de escrever um `JOIN`, faça duas perguntas:
 2. **Quero manter todos os registros dela ou apenas os que possuem relacionamento?**
 
 Se responder essas duas perguntas, ficará fácil escolher o `JOIN` correto.
+
+---
+
+# Agregação e Agrupamento
+
+## O problema que isso resolve
+
+Até agora vimos como buscar e filtrar linhas individuais. Mas e quando queremos **resumir** dados — tipo "quantos posts cada usuário tem?" ou "qual a nota média das reviews?". Para isso existem as **funções de agregação** e o `GROUP BY`.
+
+## Funções de agregação
+
+São funções que pegam várias linhas e retornam **um único valor**.
+
+| Função | O que faz |
+|--------|-----------|
+| `COUNT()` | conta quantas linhas |
+| `SUM()` | soma valores |
+| `AVG()` | calcula a média |
+| `MIN()` | pega o menor valor |
+| `MAX()` | pega o maior valor |
+
+Exemplo simples, sem agrupamento — aplicando à tabela toda:
+
+```sql
+SELECT COUNT(*) FROM posts;
+-- quantos posts existem no total
+
+SELECT AVG(price) FROM products;
+-- preço médio de todos os produtos
+```
+
+## `GROUP BY`: agregando por categoria
+
+Sozinhas, as funções de agregação resumem a tabela inteira. O `GROUP BY` permite agrupar por uma coluna e aplicar a agregação **dentro de cada grupo**.
+
+```sql
+SELECT user_id, COUNT(*)
+FROM posts
+GROUP BY user_id;
+```
+
+Isso responde: "quantos posts cada usuário tem?" — uma linha de resultado por `user_id`.
+
+**Regra de ouro:** toda coluna que aparece no `SELECT` (e não está dentro de uma função de agregação) **precisa** estar no `GROUP BY`. O PostgreSQL não sabe qual valor mostrar se houver várias linhas por grupo e a coluna não estiver agrupada nem agregada.
+
+```sql
+-- ❌ Erro: title não está agregada nem no GROUP BY
+SELECT user_id, title, COUNT(*)
+FROM posts
+GROUP BY user_id;
+
+-- ✅ Certo
+SELECT user_id, COUNT(*) AS total_posts
+FROM posts
+GROUP BY user_id;
+```
+
+## Combinando com `JOIN`
+
+Isso fica ainda mais útil junto com `JOIN` — por exemplo, número de posts por usuário, já mostrando o nome:
+
+```sql
+SELECT users.username, COUNT(posts.id) AS total_posts
+FROM users
+JOIN posts ON users.id = posts.user_id
+GROUP BY users.username;
+```
+
+## `HAVING`: filtrando grupos
+
+O `WHERE` filtra **linhas antes** de agrupar. Mas se quisermos filtrar **depois** de agregar — por exemplo, "só usuários com mais de 2 posts" — usamos o `HAVING`.
+
+```sql
+SELECT user_id, COUNT(*) AS total_posts
+FROM posts
+GROUP BY user_id
+HAVING COUNT(*) > 2;
+```
+
+**Por que não usar `WHERE COUNT(*) > 2`?** Porque o `WHERE` é avaliado antes do agrupamento acontecer — nesse momento o PostgreSQL ainda não calculou o `COUNT()`. O `HAVING` roda depois do `GROUP BY`, então já tem acesso aos valores agregados.
+
+## Ordem de execução (importante para entender de verdade)
+
+O SQL é escrito numa ordem, mas o banco executa noutra:
+
+```
+FROM/JOIN → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT
+```
+
+Isso explica por que:
+
+- `WHERE` não pode usar aliases criados no `SELECT`
+- `HAVING` pode usar funções de agregação, mas `WHERE` não
+- `ORDER BY` pode usar aliases do `SELECT`, porque roda por último
+
+## Exemplo completo juntando tudo
+
+```sql
+SELECT users.username, COUNT(posts.id) AS total_posts
+FROM users
+JOIN posts ON users.id = posts.user_id
+GROUP BY users.username
+HAVING COUNT(posts.id) > 1
+ORDER BY total_posts DESC;
+```
+
+> "Mostre cada usuário com mais de 1 post, junto com o total de posts, ordenado do maior para o menor."
+
+---
+
+# Resumo (Agregação e Agrupamento)
+
+| Cláusula / Função | Papel |
+|--------------------|-------|
+| `COUNT / SUM / AVG / MIN / MAX` | Resume várias linhas num único valor |
+| `GROUP BY` | Divide os resultados em grupos, aplicando a agregação em cada um |
+| `HAVING` | Filtra grupos **depois** da agregação (o `WHERE` filtra linhas **antes**) |
+
+**Regra de ouro:** toda coluna "solta" no `SELECT` (fora de uma função de agregação) tem que estar no `GROUP BY`.
