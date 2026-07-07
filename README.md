@@ -886,3 +886,107 @@ ORDER BY total_posts DESC;
 | `HAVING` | Filtra grupos **depois** da agregação (o `WHERE` filtra linhas **antes**) |
 
 **Regra de ouro:** toda coluna "solta" no `SELECT` (fora de uma função de agregação) tem que estar no `GROUP BY`.
+
+---
+
+# Ordenando e Limitando Resultados
+
+Falta controlar **em que ordem** os resultados aparecem e **quantos** queremos ver. Para isso existem `ORDER BY`, `LIMIT` e `OFFSET`.
+
+## `ORDER BY`
+
+Por padrão, o PostgreSQL **não garante nenhuma ordem** nos resultados. O `ORDER BY` ordena as linhas por uma ou mais colunas.
+
+```sql
+SELECT * FROM products
+ORDER BY price;
+```
+
+`ASC` (crescente, padrão) e `DESC` (decrescente):
+
+```sql
+SELECT * FROM products
+ORDER BY price DESC;
+```
+
+Pode ordenar por várias colunas. A segunda só serve para **desempatar** quando a primeira tiver valores iguais:
+
+```sql
+SELECT * FROM users
+ORDER BY username ASC, created_at DESC;
+```
+
+Como o `ORDER BY` roda **depois** do `SELECT`, pode usar aliases criados nele:
+
+```sql
+SELECT username, COUNT(posts.id) AS total_posts
+FROM users
+JOIN posts ON users.id = posts.user_id
+GROUP BY username
+ORDER BY total_posts DESC;
+```
+
+---
+
+## `LIMIT`
+
+Corta o resultado, devolvendo apenas as primeiras N linhas.
+
+```sql
+SELECT * FROM products
+ORDER BY price DESC
+LIMIT 5;
+```
+
+> `LIMIT` sem `ORDER BY` não faz sentido, já que a ordem das linhas não é garantida. Use sempre os dois juntos.
+
+---
+
+## `OFFSET`
+
+Ignora as primeiras N linhas antes de retornar o resultado.
+
+```sql
+SELECT * FROM products
+ORDER BY price ASC
+OFFSET 10;
+```
+
+### Paginação: `LIMIT` + `OFFSET`
+
+Juntos, formam a base da paginação — mostrar resultados em "páginas".
+
+```sql
+SELECT * FROM products
+ORDER BY id ASC
+LIMIT 10 OFFSET 20;
+```
+
+> Pula os primeiros 20 registos e devolve os 10 seguintes: página 3, com 10 itens por página.
+
+```
+OFFSET = (página - 1) * itens_por_página
+```
+
+| Página | LIMIT | OFFSET |
+|--------|-------|--------|
+| 1 | 10 | 0 |
+| 2 | 10 | 10 |
+| 3 | 10 | 20 |
+
+---
+
+## Exemplo completo
+
+```sql
+SELECT users.username, COUNT(posts.id) AS total_posts
+FROM users
+JOIN posts ON users.id = posts.user_id
+GROUP BY users.username
+HAVING COUNT(posts.id) > 1
+ORDER BY total_posts DESC
+LIMIT 5
+OFFSET 0;
+```
+
+> Os 5 usuários com mais de 1 post, do maior para o menor.
