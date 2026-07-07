@@ -1,4 +1,4 @@
-# Guia de PostgreSQL
+# Guia de PostgreSQL 🐘
 
 Um guia progressivo de SQL e PostgreSQL, do zero até relacionamentos entre tabelas.
 
