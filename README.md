@@ -1171,3 +1171,117 @@ ORDER BY nome ASC;
 ```
 
 ---
+
+# Subqueries (Consultas Aninhadas)
+
+Uma **subquery** é um `SELECT` dentro de outro `SELECT`. Serve para casos em que a resposta de uma pergunta depende do resultado de outra pergunta — tipo "quais produtos custam mais que a média?". Não dás para responder isso com um `WHERE` direto, porque "a média" também é uma query. É aqui que entra a subquery: a query de dentro corre primeiro, e o resultado dela alimenta a query de fora.
+
+Vamos usar as tabelas `users`, `posts` e `products` já conhecidas.
+
+---
+
+## 1. Subquery Escalar (retorna um único valor)
+
+Quando a subquery devolve **uma única linha e uma única coluna**, pode ser usada onde normalmente usarias um valor fixo — dentro do `SELECT` ou do `WHERE`.
+
+```sql
+SELECT name, price
+FROM products
+WHERE price > (SELECT AVG(price) FROM products);
+```
+
+Aqui:
+
+- `(SELECT AVG(price) FROM products)` corre primeiro e devolve **um número** (a média de preços)
+- Esse número substitui o lugar onde está escrito, como se fosse uma constante
+
+> Se a subquery devolver mais do que uma linha aqui, o PostgreSQL rejeita a query com erro — subquery escalar tem de devolver exatamente um valor.
+
+Também podes usar no `SELECT`, como coluna calculada:
+
+```sql
+SELECT name, price, (SELECT AVG(price) FROM products) AS avg_price
+FROM products;
+```
+
+---
+
+## 2. Subquery no `FROM` (tabela derivada)
+
+Uma subquery também pode aparecer no lugar de uma tabela, dentro do `FROM`. O resultado dela funciona como uma **tabela temporária**, e por isso precisa sempre de um alias.
+
+```sql
+SELECT avg_posts.user_id, avg_posts.total_posts
+FROM (
+    SELECT user_id, COUNT(*) AS total_posts
+    FROM posts
+    GROUP BY user_id
+) AS avg_posts
+WHERE avg_posts.total_posts > 1;
+```
+
+Aqui:
+
+- A subquery interna calcula quantos posts cada `user_id` tem
+- `AS avg_posts` dá nome a essa tabela derivada
+- A query externa trata `avg_posts` como se fosse uma tabela normal, filtrando e selecionando dela
+
+> Repara que isto parece com `HAVING COUNT(*) > 1`, mas usar subquery no `FROM` dá mais liberdade quando precisas de reaproveitar o resultado agregado em cálculos adicionais na query de fora.
+
+---
+
+## 3. Subquery no `WHERE` com `IN`
+
+Quando a subquery devolve **uma lista de valores** (uma coluna, várias linhas), usa-se com `IN`.
+
+```sql
+SELECT username
+FROM users
+WHERE id IN (SELECT user_id FROM posts);
+```
+
+> "Todos os usuários que têm pelo menos um post."
+
+A subquery `(SELECT user_id FROM posts)` devolve uma lista de IDs, e o `IN` verifica se o `id` do user está nessa lista.
+
+## `NOT IN` — cuidado com `NULL`
+
+```sql
+SELECT username
+FROM users
+WHERE id NOT IN (SELECT user_id FROM posts);
+```
+
+> "Todos os usuários que nunca postaram."
+
+**Atenção:** se a subquery devolver **um único `NULL`** entre os resultados, o `NOT IN` inteiro deixa de devolver linhas nenhumas — silenciosamente, sem erro. Isto acontece porque `NOT IN` compara com todos os valores da lista, e comparar com `NULL` dá `NULL` (nem verdadeiro, nem falso). Para evitar essa armadilha, garante que a coluna da subquery é `NOT NULL`, ou usa `NOT EXISTS` (a seguir) em vez de `NOT IN`.
+
+---
+
+## 4. Subquery com `EXISTS`
+
+`EXISTS` verifica **apenas se a subquery devolve alguma linha** — não olha para os valores, só se existe pelo menos um resultado. Por isso é normalmente uma **subquery correlacionada** (ver secção 5).
+
+```sql
+SELECT username
+FROM users
+WHERE EXISTS (
+    SELECT 1 FROM posts WHERE posts.user_id = users.id
+);
+```
+
+> "Todos os usuários que têm pelo menos um post" — mesmo resultado do exemplo com `IN`, mas escrito de outra forma.
+
+`SELECT 1` aqui é só uma convenção — como o `EXISTS` não olha para o valor devolvido, tanto faz selecionar `1`, uma coluna ou `*`. O que importa é se **existe linha**.
+
+## `NOT EXISTS`
+
+```sql
+SELECT username
+FROM users
+WHERE NOT EXISTS (
+    SELECT 1 FROM posts WHERE posts.user_id = users.id
+);
+```
+
+> "Todos os usuários que nunca postaram" — a alternativa segura ao `NOT IN`, porque `NOT EXISTS` não tem o problema do `NULL`.
