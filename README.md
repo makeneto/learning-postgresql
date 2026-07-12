@@ -1528,3 +1528,53 @@ GROUP BY cidade;
 
 > 💡 **Dica:** usa `SELECT DISTINCT` quando queres **ver os valores** únicos; usa `COUNT(DISTINCT ...)` quando só precisas de **saber quantos** existem, sem listar cada um.
  
+---
+
+# A função `GREATEST`
+
+`GREATEST` recebe vários valores (ou colunas) e devolve **o maior** entre eles, linha a linha.
+
+```sql
+SELECT GREATEST(10, 25, 3);
+```
+
+| greatest |
+|----------|
+| 25       |
+
+## `GREATEST` vs `MAX()`
+
+| Função        | Compara     | Devolve |
+|----------------|-------------|---------|
+| `MAX(coluna)`  | Entre **linhas** | Um valor, resumindo a tabela |
+| `GREATEST(a, b, c)` | Entre **colunas/valores**, na mesma linha | Um valor por linha |
+
+## Exemplo com colunas
+
+### `products`
+
+| id | name    | preco_loja_a | preco_loja_b | preco_loja_c |
+|----|---------|---------------|---------------|---------------|
+| 1  | Teclado | 50            | 45            | 60            |
+| 2  | Monitor | 300           | 320           | 280           |
+
+```sql
+SELECT name, GREATEST(preco_loja_a, preco_loja_b, preco_loja_c) AS preco_mais_alto
+FROM products;
+```
+
+| name    | preco_mais_alto |
+|---------|-------------------|
+| Teclado | 60                |
+| Monitor | 320               |
+
+## `LEAST`
+
+O oposto: devolve o menor valor.
+
+```sql
+SELECT LEAST(preco_loja_a, preco_loja_b, preco_loja_c) AS preco_mais_baixo
+FROM products;
+```
+
+> **Regra de ouro:** `GREATEST`/`LEAST` ignoram `NULL`, a menos que todos os argumentos sejam `NULL`.
