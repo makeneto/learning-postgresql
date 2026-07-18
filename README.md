@@ -381,6 +381,91 @@ ALTER COLUMN phone_number DROP NOT NULL;
 
 ---
 
+# Constraints na Criação vs. Depois da Tabela Criada
+
+Já vimos constraints como `NOT NULL`, `DEFAULT` e `UNIQUE` sendo definidas **dentro** do `CREATE TABLE`. Mas todas elas também podem ser adicionadas (ou removidas) **depois** de a tabela já existir, com `ALTER TABLE`. É útil comparar os dois lados lado a lado.
+
+## `DEFAULT`
+
+Define um valor **automático** para a coluna quando nenhum valor é passado no `INSERT`.
+
+```sql
+-- Ao criar a tabela
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    department VARCHAR(50) NOT NULL,
+    price INTEGER DEFAULT 999,
+    weight INTEGER
+);
+```
+
+```sql
+-- Depois de a tabela já existir
+ALTER TABLE products
+ALTER COLUMN price SET DEFAULT 999;
+```
+
+> 💡 **Dica:** para remover um `DEFAULT` já definido, usa `ALTER TABLE products ALTER COLUMN price DROP DEFAULT;`.
+
+## `NOT NULL`
+
+Obriga a que a coluna tenha sempre um valor — não pode ficar vazia (`NULL`).
+
+```sql
+-- Ao criar a tabela
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50),
+    department VARCHAR(50),
+    price INTEGER NOT NULL,
+    weight INTEGER
+);
+```
+
+```sql
+-- Depois de a tabela já existir
+ALTER TABLE products
+ALTER COLUMN price SET NOT NULL;
+```
+
+> ⚠️ **Atenção:** para conseguires aplicar `SET NOT NULL` numa coluna já existente, todas as linhas atuais têm de já ter um valor preenchido nessa coluna. Se houver algum `NULL` na tabela, o PostgreSQL rejeita o comando.
+
+## `UNIQUE`
+
+Garante que **não existem valores repetidos** nessa coluna entre as várias linhas da tabela.
+
+```sql
+-- Ao criar a tabela
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE,
+    department VARCHAR(50),
+    price INTEGER,
+    weight INTEGER
+);
+```
+
+```sql
+-- Depois de a tabela já existir
+ALTER TABLE products
+ADD UNIQUE (name);
+```
+
+> 💡 **Dica:** também podes dar um nome à constraint, o que ajuda a identificá-la depois (ex: para a remover): `ALTER TABLE products ADD CONSTRAINT products_name_unique UNIQUE (name);`.
+
+## Resumo (Constraints)
+
+| Constraint | Na criação da tabela | Depois de criada |
+|------------|------------------------|---------------------|
+| `DEFAULT` | `price INTEGER DEFAULT 999` | `ALTER COLUMN price SET DEFAULT 999;` |
+| `NOT NULL` | `price INTEGER NOT NULL` | `ALTER COLUMN price SET NOT NULL;` |
+| `UNIQUE` | `name VARCHAR(50) UNIQUE` | `ADD UNIQUE (name);` |
+
+**Regra de ouro:** o padrão é sempre o mesmo — `ALTER TABLE tabela ALTER COLUMN coluna SET ...` para `DEFAULT` e `NOT NULL`, e `ALTER TABLE tabela ADD ...` para constraints como `UNIQUE` e `FOREIGN KEY`, que envolvem a tabela como um todo em vez de só um atributo da coluna.
+
+---
+
 # `DELETE COLUMN` — Remover Colunas
 
 ```sql
@@ -1358,7 +1443,7 @@ SELECT name FROM products WHERE category IN (SELECT category FROM products WHERE
 ## Resumo (ALL / SOME / ANY)
 
 | Operador     | Verdadeiro quando...               | Equivale a     |
-|--------------|-------------------------------------|----------------|
+|--------------|--------------------------------------|----------------|
 | `> ALL`      | maior que **todos** os valores      | `> MAX(...)`   |
 | `> SOME/ANY` | maior que **pelo menos um** valor   | `> MIN(...)`   |
 | `= ANY`      | igual a **pelo menos um** valor     | `IN (...)`     |
