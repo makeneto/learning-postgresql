@@ -454,6 +454,32 @@ ADD UNIQUE (name);
 
 > 💡 **Dica:** também podes dar um nome à constraint, o que ajuda a identificá-la depois (ex: para a remover): `ALTER TABLE products ADD CONSTRAINT products_name_unique UNIQUE (name);`.
 
+## `UNIQUE` em várias colunas (Multi-column Uniqueness)
+
+Por vezes a unicidade não faz sentido numa coluna sozinha, mas sim na **combinação** de várias colunas. Um exemplo clássico: numa tabela `enrollments`, o mesmo `student_id` pode aparecer várias vezes (um aluno em várias disciplinas) e o mesmo `course_id` também (uma disciplina com vários alunos) — mas o **par** `(student_id, course_id)` não se pode repetir, porque isso significaria o aluno inscrito duas vezes na mesma disciplina.
+
+```sql
+-- Ao criar a tabela
+CREATE TABLE enrollments (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    student_id INTEGER REFERENCES students(id),
+    course_id INTEGER REFERENCES courses(id),
+    UNIQUE (student_id, course_id)
+);
+```
+
+```sql
+-- Depois de a tabela já existir
+ALTER TABLE enrollments
+ADD UNIQUE (student_id, course_id);
+```
+
+> 💡 **Dica:** tal como no `UNIQUE` de uma coluna, também podes nomear a constraint para facilitar a gestão depois: `ALTER TABLE enrollments ADD CONSTRAINT enrollments_student_course_unique UNIQUE (student_id, course_id);`.
+
+> ⚠️ **Atenção:** `UNIQUE (student_id, course_id)` é diferente de `UNIQUE (student_id), UNIQUE (course_id)` separados. A versão combinada só bloqueia a repetição do **par exato**; cada coluna sozinha continua a poder repetir-se à vontade.
+
+**Regra de ouro:** usa `UNIQUE` numa coluna quando o valor tem de ser único sozinho (ex: `email`); usa `UNIQUE` em várias colunas quando é a **combinação** delas que representa um registo que não pode duplicar-se (ex: um aluno não pode inscrever-se duas vezes na mesma disciplina).
+
 ## Resumo (Constraints)
 
 | Constraint | Na criação da tabela | Depois de criada |
@@ -461,6 +487,7 @@ ADD UNIQUE (name);
 | `DEFAULT` | `price INTEGER DEFAULT 999` | `ALTER COLUMN price SET DEFAULT 999;` |
 | `NOT NULL` | `price INTEGER NOT NULL` | `ALTER COLUMN price SET NOT NULL;` |
 | `UNIQUE` | `name VARCHAR(50) UNIQUE` | `ADD UNIQUE (name);` |
+| `UNIQUE` (multi-coluna) | `UNIQUE (student_id, course_id)` | `ADD UNIQUE (student_id, course_id);` |
 
 **Regra de ouro:** o padrão é sempre o mesmo — `ALTER TABLE tabela ALTER COLUMN coluna SET ...` para `DEFAULT` e `NOT NULL`, e `ALTER TABLE tabela ADD ...` para constraints como `UNIQUE` e `FOREIGN KEY`, que envolvem a tabela como um todo em vez de só um atributo da coluna.
 
