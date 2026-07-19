@@ -606,6 +606,54 @@ DROP COLUMN phone_number;
 
 ---
 
+# `TRUNCATE` — Esvaziar uma Tabela
+
+`TRUNCATE` apaga **todos os dados** de uma tabela, mantendo a estrutura (colunas, tipos, constraints) intacta. É o equivalente a um `DELETE FROM tabela;` sem `WHERE`, mas muito mais rápido.
+
+```sql
+TRUNCATE TABLE products;
+```
+
+> O `TABLE` é opcional — `TRUNCATE products;` funciona exatamente da mesma forma.
+
+## `TRUNCATE` vs `DELETE`
+
+| | `DELETE FROM` | `TRUNCATE` |
+|---|----------------|------------|
+| Remove dados | Sim, linha a linha | Sim, a tabela inteira de uma vez |
+| Aceita `WHERE` | Sim, pode apagar só algumas linhas | Não, apaga sempre tudo |
+| Velocidade | Mais lento (regista cada linha apagada) | Muito mais rápido (não regista linha a linha) |
+| Reinicia `IDENTITY`/`SERIAL` | Não, por padrão | Não, a menos que uses `RESTART IDENTITY` |
+| Aciona `TRIGGER`s por linha | Sim | Não (só triggers a nível de `TRUNCATE`) |
+
+> ⚠️ **Atenção:** ao contrário do `DELETE`, `TRUNCATE` **não aceita `WHERE`** — apaga sempre a tabela inteira. Se precisares de apagar só algumas linhas, usa `DELETE FROM tabela WHERE ...`.
+
+## `RESTART IDENTITY`
+
+Por padrão, `TRUNCATE` apaga os dados mas **não reinicia** o contador de `GENERATED ALWAYS AS IDENTITY` / `SERIAL`. Se inserires um novo registo depois, o `id` continua a partir de onde ficou.
+
+```sql
+-- Apaga os dados, mas o próximo id continua a sequência anterior
+TRUNCATE TABLE products;
+
+-- Apaga os dados E reinicia o id a partir de 1
+TRUNCATE TABLE products RESTART IDENTITY;
+```
+
+## `CASCADE`
+
+Se outras tabelas tiverem `FOREIGN KEY` a apontar para a tabela que estás a truncar, o PostgreSQL recusa o comando por padrão (para não deixar referências "órfãs"). `CASCADE` resolve isso, truncando também as tabelas dependentes.
+
+```sql
+TRUNCATE TABLE users CASCADE;
+```
+
+> ⚠️ **Atenção:** `CASCADE` aqui também apaga os dados das tabelas relacionadas (ex: `posts`, se `posts.user_id` referenciar `users.id`). Usa com cuidado — o efeito é em cadeia.
+
+**Regra de ouro:** usa `DELETE FROM ... WHERE` quando precisas de apagar linhas específicas; usa `TRUNCATE` quando queres esvaziar a tabela inteira rapidamente, mantendo a estrutura para continuar a usá-la depois.
+
+---
+
 # `DROP TABLE` — Remover Tabelas
 
 ```sql
