@@ -699,19 +699,6 @@ Cria uma **ligação** entre uma coluna desta tabela e a chave primária de outr
 CREATE TABLE posts (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title VARCHAR(100),
-    user_id INTEGER,
-    CONSTRAINT fk_user
-        FOREIGN KEY (user_id)
-        REFERENCES users(id)
-);
-```
-
-Ou, de forma mais direta, diretamente na definição da coluna:
-
-```sql
-CREATE TABLE posts (
-    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    title VARCHAR(100),
     user_id INTEGER REFERENCES users(id)
 );
 ```
